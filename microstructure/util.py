@@ -1,10 +1,13 @@
 import numpy
 
 def rescale(im, minv, maxv):
-    im = numpy.array(im)
+    if type(im) != numpy.ndarray:
+        im = numpy.array(im)
 
     im -= im.flatten().min()
     im /= im.flatten().max()
 
     im *= maxv - minv
-    im -= minv
+    im += minv
+
+    return im
