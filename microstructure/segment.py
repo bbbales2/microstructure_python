@@ -3,6 +3,8 @@ import numpy
 import util
 import tempfile
 
+from chanvese import ChanVese
+
 class CahnHilliard():
     """This is a class for simulating a binary spinodal decomposition (useful for segmenting superalloy microstructure images) using a Cahn-Hilliard PDE on a 2D grid.
 
@@ -101,7 +103,8 @@ class CahnHilliard():
 
         """
         import matplotlib.pyplot as plt
-        im = util.rescale(im, -1.0 + mean_shift, 1.0 + mean_shift)
+
+        im = util.kmeans_rescale(im) + mean_shift
 
         with tf.Session() as sess:
             losses = []
@@ -145,31 +148,19 @@ class CahnHilliardWithV(CahnHilliard):
         self.vShape = vShape
 
         # Set up the network for figuring out V
+        self.toFit = tf.Variable(tf.truncated_normal([1, self.shape[0], self.shape[1], 1], 0.1))
         self.V = tf.Variable(tf.truncated_normal([vShape[0], vShape[1], 1, 1], 0.1))
-        self.nx1 = tf.Variable(numpy.zeros(self.shape).astype('complex64'))
-        self.rnx1 = tf.Variable(numpy.zeros([1, self.shape[0], self.shape[1], 1]).astype('float32'))
+        self.b = tf.Variable(tf.constant(0.01, shape = [1]))
+        self.xV = tf.nn.conv2d(tf.reshape(self.ix, [1, self.shape[0], self.shape[1], 1]), self.V, [1, 1, 1, 1], padding = 'SAME') + self.b
+        
+        self.error = tf.nn.l2_loss(self.toFit - self.xV)##tf.reduce_mean(tf.abs((self.toFit - self.xV)))
 
-        self.computeImplicit = self.nx1.assign(self.implicit)
-        self.computeIFFT = self.rnx1.assign(tf.reshape(tf.real(tf.ifft2d(self.nx1)), [1, self.shape[0], self.shape[1], 1]))
-
-        self.xV = tf.nn.conv2d(self.rnx1, self.V, [1, 1, 1, 1], padding = 'SAME')
-
-        self.fftV = tf.fft2d(tf.complex(tf.reshape(self.xV, self.shape), self.zeros))
-
-        self.nx2 = self.nx1 - self.dt * (self.wx2 + self.wy2) * (self.x3 + self.fftV)
-
-        self.error = tf.reduce_mean(tf.complex_abs(self.nx2 - self.x))
-
-        self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.error, var_list = [self.V])
+        self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.error, var_list = [self.V, self.b])
 
         # Modify the parent update functions to use the V
+        self.fftV = tf.fft2d(tf.complex(tf.reshape(self.xV, self.shape), self.zeros))
 
-        self.xV2 = tf.nn.conv2d(tf.reshape(tf.real(tf.ifft2d(self.x)), [1, self.shape[0], self.shape[1], 1]), self.V, [1, 1, 1, 1], padding = 'SAME')
-        self.fftV2 = tf.fft2d(tf.complex(tf.reshape(self.xV2, self.shape), self.zeros))
-
-        self.update2 = self.x.assign_sub(self.dt * (self.wx2 + self.wy2) * (self.x3 + self.fftV2))
-
-        self.saver = tf.train.Saver({ "V" : self.V })
+        self.saver = tf.train.Saver({ "V" : self.V, "b" : self.b })
 
         self.is_fit = False
 
@@ -177,7 +168,8 @@ class CahnHilliardWithV(CahnHilliard):
         self.is_fit = True
 
         import matplotlib.pyplot as plt
-        im = util.rescale(im, -1.0 + mean_shift, 1.0 + mean_shift)
+
+        im = util.kmeans_rescale(im) + mean_shift
 
         with tf.Session() as sess:
             losses = []
@@ -194,12 +186,17 @@ class CahnHilliardWithV(CahnHilliard):
             M = ((self.x - self.xOld) / inv).eval()
             M[0, 0] = 0.0
 
-            sess.run(self.toFit.assign(numpy.real(numpy.fft.ifft2(M))))
+            #import pdb
+            #pdb.set_trace()
+
+            sess.run(self.toFit.assign(tf.reshape(numpy.real(numpy.fft.ifft2(M)).astype('float32'), [1, self.shape[0], self.shape[1], 1])))
+
+            sess.run(self.x.assign(self.xOld))
+
+            #import pdb
+            #pdb.set_trace()
 
             import time
-
-            sess.run(self.computeImplicit)
-            sess.run(self.computeIFFT)
 
             for i in range(max_steps):
                 tmp = time.time()
@@ -228,16 +225,20 @@ class CahnHilliardWithV(CahnHilliard):
                     #import pdb
                     #pdb.set_trace()
 
-            output = sess.run(self.V)[:, :, 0, 0]
+            output = sess.run(self.V)[:, :, 0, 0] + sess.run(self.b)[0]
 
             self.tmpVFile = tempfile.NamedTemporaryFile()
 
             self.saver.save(sess, self.tmpVFile.name)
+
+        self.update2 = self.x.assign_sub(self.dt * (self.wx2 + self.wy2) * (self.x3 + self.fftV))
+
         return output 
 
     def run(self, im, stopping_threshold = 1e-4, max_steps = 50, mean_shift = 0.0):
         import matplotlib.pyplot as plt
-        im = util.rescale(im, -1.0 + mean_shift, 1.0 + mean_shift)
+
+        im = util.kmeans_rescale(im) + mean_shift
 
         if not self.is_fit:
             print "Model is not fit yet. Please run CahnHilliardWithV.fit first"
