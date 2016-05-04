@@ -36,8 +36,8 @@ class ChanVese():
 
         self.blur = tf.nn.conv2d(self.I, self.kernel, strides = [1, 1, 1, 1], padding = 'SAME')
         #self.blurG = tf.nn.conv2d(self.Gv, self.kernel, strides = [1, 1, 1, 1], padding = 'SAME')
-        self.H = 0.5 * (1.0 + (2.0 / numpy.pi) * tf.tanh(self.blur))
-        self.conv = tf.nn.conv2d(self.H, self.Grad, strides = [1, 1, 1, 1], padding = 'SAME')
+        #self.H = 0.5 * (1.0 + (2.0 / numpy.pi) * tf.tanh(self.blur))
+        #self.conv = tf.nn.conv2d(self.H, self.Grad, strides = [1, 1, 1, 1], padding = 'SAME')
 
         self.Gv = tf.Variable(numpy.zeros([1, shape[0], shape[1], 1]).astype('float32'))
 
@@ -51,6 +51,9 @@ class ChanVese():
         self.lambda2 = lambda2
         self.nu = nu
         self.mu = mu
+
+        eta = 0.1
+        self.conv = eta / (numpy.pi * (eta**2 + self.blur**2))
 
         self.areaLoss = self.nu * tf.reduce_sum(tf.select(self.u1m < self.u2m, ones, zeros))
         self.u1t = self.lambda1 * tf.reduce_sum(tf.select(self.u2m > self.u1m, (self.Gv - self.u1)**2, zeros))
