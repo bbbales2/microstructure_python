@@ -21,9 +21,9 @@ im = skimage.transform.resize(im, [256, 256])
 print im.shape
 
 # Perform a ChanVese segmentation
-cv = microstructure.segment.ChanVese(im.shape)
+cv = microstructure.segment.ChanVese(im.shape, lambda2 = 0.5)
 
-seg = cv.run(im, percentile = 50.0, max_steps = 1000)
+seg = cv.run(im, percentile = 40.0, max_steps = 1000)
 
 # Visualize the segmentation
 plt.imshow(seg, interpolation = 'NONE', cmap = plt.cm.gray)
