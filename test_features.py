@@ -1,16 +1,18 @@
-import microstructure
+import microstructure.features
 import skimage.io
+import skimage.color
 import os
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-im = skimage.io.imred('test.png')
+im = skimage.color.rgb2gray(skimage.io.imread('molybdenum1.png'))
 
 # Global features
-hog = microstructure.features.HOG(sigma = 1.0)
+hog = microstructure.features.HOG(8)
 
 hogs = hog.run(im)
 
+1/0
 # Sparse features?
 
 # Dense features, lbps, HOGs
