@@ -42,11 +42,11 @@ class CahnHilliard():
         """The shape of the Cahn-Hilliard PDE is specified at construction. This just allocates memory and builds the Tensorflow compute graph.
 
         Arguments:
-        shape -- 2 element iterable, for instance [256, 127]. Size of image to segment. 3D simulations are not supported (required)
+        shape (required) -- 2 element iterable, for instance [256, 127]. Size of image to segment. 3D simulations are not supported
 
-        dt -- Timestep of the Cahn-Hilliard solver. In terms of the equations on https://en.wikipedia.org/wiki/Cahn%E2%80%93Hilliard_equation, it's actually the timestep times the diffusion coefficient. Because we don't care about actual physical units here, we just merge em' together (default : 0.01)
+        dt (default : 0.01) -- Timestep of the Cahn-Hilliard solver. In terms of the equations on https://en.wikipedia.org/wiki/Cahn%E2%80%93Hilliard_equation, it's actually the timestep times the diffusion coefficient. Because we don't care about actual physical units here, we just merge em' together
 
-        y -- Gamma parameter of the Cahn-Hilliard equation (https://en.wikipedia.org/wiki/Cahn%E2%80%93Hilliard_equation) (default : 0.25)
+        y (default : 0.25) -- Gamma parameter of the Cahn-Hilliard equation (https://en.wikipedia.org/wiki/Cahn%E2%80%93Hilliard_equation)
         """
 
         if len(shape) == 3:
@@ -88,19 +88,21 @@ class CahnHilliard():
         """Run the Cahn-Hilliard PDE
 
         Arguments:
-        im -- image of size 'shape' given in constructor. The image values will be rescaled to [-1.0 + mean_shift, 1.0 + mean_shift] (required)
+        im (required) -- image of size 'shape' given in constructor. The image values will be rescaled to [-1.0 + mean_shift, 1.0 + mean_shift]
 
-        stopping_threshold -- If the average per-pixel change in a time step is less than stopping_threshold, the simulation will stop. I.E.,
+        stopping_threshold (default : 1e-4) -- If the average per-pixel change in a time step is less than stopping_threshold, the simulation will stop. I.E.,
 
         xnew = xold + dx
         If dx < stopping_threshold, the code will stop.
 
-        max_steps -- If the stopping threshold isn't hit by this number of timesteps, quit
+        max_steps (default : 50) -- If the stopping threshold isn't hit by this number of timesteps, quit
 
-        mean_shift -- Amount by which to shift the input image up or down. Because the Cahn-Hilliard equation is conservative, the mean of the initial conditions will be conserved. What this effects with regards to segmentations is sometimes you find out your image is a bit starved for material to segment out all the precipitates you want. Making this a larger number can help. (Practically it should be [-1.0, 1.0])
+        mean_shift (default : 0.0) -- Amount by which to shift the input image up or down. Because the Cahn-Hilliard equation is conservative, the mean of the initial conditions will be conserved. What this effects with regards to segmentations is sometimes you find out your image is a bit starved for material to segment out all the precipitates you want. Making this a larger number can help. (Practically it should be [-1.0, 1.0])
 
         Returns:
-        Array of size shape, the c variable from the Cahn-Hilliard simulation. It should be easy to actually segment with an Otsu threshold
+        array
+
+        array -- The output of the Cahn-Hilliard simulation. It should be easy to produce a final segmentation by following this up with an Otsu threshold
         """
         import matplotlib.pyplot as plt
 

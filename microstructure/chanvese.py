@@ -8,15 +8,30 @@ class ChanVese():
     This class implements a Chan-Vese algorithm similarly to the one implemented by Pascal Getreur here: ipol.im/pub/art/2012/g-cv/article.pdf (Chan-Vese Segmentation).
 
     I didn't get the nu parameter easily working so I left it out.
+
+    The ChanVese algorithm tries to build a binary piecewise constant approximation to an image. This is just another way of sayinga binary segmentation.
+
+    The Chan-Vese algorithm assumes that the image is composed of two types of material (type 1 and type 2 for all intensive purposes). It tries to label everything in the image as one of these two classes while minimizing the length of the boundary between the two.
+
+    There are weights to control:
+    1. The cost of labeling pixels type 1
+    2. The cost of labeling pixels type 2
+    3. The cost of having a boundary
+
+    All this can be set in the constructor
     """
     def __init__(self, shape, lambda1 = 0.1, lambda2 = 0.1, mu = 0.1):
-        GradCpu = numpy.concatenate((numpy.array([[0, 0, 0],
-                                                  [-0.5, 0, 0.5],
-                                                  [0, 0, 0]]).reshape((3, 3, 1, 1)),
-                                     numpy.array([[0, -0.5, 0],
-                                                  [0, 0, 0],
-                                                  [0, 0.5, 0]]).reshape((3, 3, 1, 1))), axis = 3).astype('float32')
+        """Initialize the ChanVese segmenter
 
+        Arguments:
+        shape (required) -- size of the image to segment
+
+        lambda1 (default : 0.1) -- The cost of labeling pixels type 1 (check the Class docstring). This argument (as well as lambda2) can be used if the segmentation should be biased in one direction or the other. It's not deterministic what bits of the image get labeled with either lambda though -- this (as well as lambda2) will likely be a bit of a guess and check parameter.
+
+        lambda2 (default : 0.1) -- The cost of labeling pixels type 2 (check the Class docstring)
+
+        mu (default : 0.1) -- This is the cost of having a boundary. A higher value will mean less boundaries
+        """
         xs = range(3)
         ys = range(3)
         Xs, Ys = numpy.meshgrid(xs, ys)
@@ -40,9 +55,6 @@ class ChanVese():
         self.initialize2 = self.I.assign(tf.reshape(self.G, shape = [1, shape[0], shape[1], 1]))
 
         self.blur = tf.nn.conv2d(self.I, self.kernel, strides = [1, 1, 1, 1], padding = 'SAME')
-        #self.blurG = tf.nn.conv2d(self.Gv, self.kernel, strides = [1, 1, 1, 1], padding = 'SAME')
-        #self.H = 0.5 * (1.0 + (2.0 / numpy.pi) * tf.tanh(self.blur))
-        #self.conv = tf.nn.conv2d(self.H, self.Grad, strides = [1, 1, 1, 1], padding = 'SAME')
 
         self.Gv = tf.Variable(numpy.zeros([1, shape[0], shape[1], 1]).astype('float32'))
 
@@ -71,7 +83,25 @@ class ChanVese():
         self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.loss, var_list = [self.I, self.u1, self.u2])
 
     def run(self, im, stopping_threshold = 1e-4, max_steps = 250, percentile = 50.0):
-        import matplotlib.pyplot as plt
+        """Run the Chan-Vese segmentation
+
+        im (required) -- image of size 'shape'
+
+        stopping_threshold (default : 1e-4) -- If the average per-pixel change in a time step is less than stopping_threshold, the simulation will stop. I.E.,
+
+        xnew = xold + dx
+        If dx < stopping_threshold, the code will stop.
+
+        max_steps (default : 50) -- If the stopping threshold isn't hit by this number of timesteps, quit
+
+        percentile (default : 50.0) -- The values of the image will be shifted before running the segmentation so that the xth percentile pixel value is realigned to zero. Use this if there should be some bias in the segmentation one way or another (there's more material of one type than another). I'm not sure why this works based on how the algorithm runs, but it seems to. I probably have a bug somewhere.
+
+        Returns:
+        array
+        
+        array -- This is the 'phi' from the Chan-Vese algorithm. It is an array of size shape. To produce the segmentation, look at values above and below zero.
+        """
+        #import matplotlib.pyplot as plt
 
         im -= im.flatten().min()
         im /= im.flatten().max()
@@ -101,17 +131,17 @@ class ChanVese():
                 if len(losses) > 1 and numpy.abs(losses[-2] - losses[-1]) < stopping_threshold:
                     break
 
-                if i % 100 == 0 and i > 0:
-                    plt.imshow(im, cmap = plt.cm.gray)
-                    plt.imshow(self.blur.eval()[0, :, :, 0], alpha = 0.5)
-                    plt.colorbar()
-                    plt.show()
+                #if i % 100 == 0 and i > 0:
+                #    plt.imshow(im, cmap = plt.cm.gray)
+                #    plt.imshow(self.blur.eval()[0, :, :, 0], alpha = 0.5)
+                #    plt.colorbar()
+                #    plt.show()
 
-                    import pdb
-                    pdb.set_trace()
+                #    import pdb
+                #    pdb.set_trace()
 
-            plt.plot(losses)
-            plt.show()
+            #plt.plot(losses)
+            #plt.show()
 
             output = self.blur.eval()[0, :, :, 0]
 

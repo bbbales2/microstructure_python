@@ -88,7 +88,9 @@ class CahnHilliardWithV(cahnhilliard.CahnHilliard):
         mean_shift (default : 0.0) -- Amount by which to shift the input image up or down. Because the Cahn-Hilliard equation is conservative, the mean of the initial conditions will be conserved. What this effects with regards to segmentations is sometimes you find out your image is a bit starved for material to segment out all the precipitates you want. Making this a larger number can help. (Practically it should be [-1.0, 1.0])
 
         Returns:
-        Array of size vShape, the convolution kernel V
+        V
+
+        V -- V is an array of size vShape that has the computed convolution kernel V
         """
         self.is_fit = True
 
@@ -178,7 +180,9 @@ class CahnHilliardWithV(cahnhilliard.CahnHilliard):
         mean_shift -- Amount by which to shift the input image up or down. Because the Cahn-Hilliard equation is conservative, the mean of the initial conditions will be conserved. What this effects with regards to segmentations is sometimes you find out your image is a bit starved for material to segment out all the precipitates you want. Making this a larger number can help. (Practically it should be [-1.0, 1.0])
 
         Returns:
-        Array of size shape, the c variable from the Cahn-Hilliard simulation. It should be easy to actually segment with an Otsu threshold
+        array
+
+        array -- array is an array of size shape that holds the output of the Cahn-Hilliard simulations. It should be easy to actually segment with an Otsu threshold
         """
 
         import matplotlib.pyplot as plt

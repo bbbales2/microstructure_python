@@ -1,4 +1,4 @@
-import microstructure
+import microstructure.segment
 import skimage.io
 import skimage.filters
 import skimage.transform
@@ -16,17 +16,17 @@ im = skimage.color.rgb2gray(skimage.io.imread('/home/bbales2/lukestuff/flat/GTD4
 #im = skimage.color.rgb2gray(skimage.io.imread('/home/bbales2/DeepTextures/Images/reneN5.png'))
 #im = skimage.color.rgb2gray(skimage.io.imread('molybdenum1.png'))[:1024, :1024]
 
-im = skimage.transform.resize(im, [256, 256])
+im = skimage.transform.resize(im, [256, 400])
 
 print im.shape
 
 # Perform a ChanVese segmentation
-cv = microstructure.segment.ChanVese(im.shape, lambda2 = 0.5)
+cv = microstructure.segment.EMMPM(im.shape)#ChanVese, lambda2 = 0.5
 
-seg = cv.run(im, percentile = 40.0, max_steps = 1000)
+seg = cv.run(im)#, percentile = 40.0, max_steps = 1000
 
 # Visualize the segmentation
-plt.imshow(seg, interpolation = 'NONE', cmap = plt.cm.gray)
+plt.imshow(im, interpolation = 'NONE', cmap = plt.cm.gray)
 plt.imshow(seg > skimage.filters.threshold_otsu(seg), alpha = 0.5, interpolation = 'NONE')
 #plt.imshow(im, cmap = plt.cm.gray, interpolation = 'NONE')
 plt.show()
