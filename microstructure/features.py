@@ -1,7 +1,7 @@
 import pyximport
 pyximport.install()
 
-import hog
+from hog import hog
 
 class HOG():
     def __init__(self, binsize = 8, padding = False):
@@ -13,3 +13,5 @@ class HOG():
             return hog.hogpad(hog.hog(im, self.binsize))
         else:
             return hog.hog(im, self.binsize)
+
+from boxes import labels2boxes, hists2boxes
