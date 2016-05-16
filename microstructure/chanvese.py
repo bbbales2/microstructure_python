@@ -40,7 +40,6 @@ class ChanVese():
         kernelBlurCpu = numpy.exp(-Rs / (2.0 * 0.75**2)).astype('float32')
         kernelBlurCpu /= numpy.linalg.norm(kernelBlurCpu.flatten())
         
-        self.Grad = tf.constant(GradCpu)
         self.kernel = tf.constant(kernelBlurCpu.reshape([3, 3, 1, 1]))
 
         self.I = tf.Variable(tf.truncated_normal(shape = [1, shape[0], shape[1], 1], mean = 0.0, stddev = 0.1))
@@ -80,7 +79,7 @@ class ChanVese():
 
         self.shape = shape
 
-        self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.loss, var_list = [self.I, self.u1, self.u2])
+        self.train_step = tf.train.AdamOptimizer(1.0e-1).minimize(self.loss, var_list = [self.I, self.u1, self.u2])
 
     def run(self, im, stopping_threshold = 1e-4, max_steps = 250, percentile = 50.0):
         """Run the Chan-Vese segmentation
@@ -102,6 +101,9 @@ class ChanVese():
         array -- This is the 'phi' from the Chan-Vese algorithm. It is an array of size shape. To produce the segmentation, look at values above and below zero.
         """
         #import matplotlib.pyplot as plt
+
+        if im.dtype != 'float64':
+            im = im.astype('float64')
 
         im -= im.flatten().min()
         im /= im.flatten().max()
@@ -128,7 +130,10 @@ class ChanVese():
             for i in range(max_steps):
                 train, u1v, u2v, u1t, u2t, edgeLoss = sess.run([self.train_step, self.u1, self.u2, self.u1t, self.u2t, self.edgeLoss])
 
+                print u1t, u2t, edgeLoss
+
                 if len(losses) > 1 and numpy.abs(losses[-2] - losses[-1]) < stopping_threshold:
+                    print "Stopping Threshold"
                     break
 
                 #if i % 100 == 0 and i > 0:
