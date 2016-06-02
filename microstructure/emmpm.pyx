@@ -160,7 +160,7 @@ class EMMPM():
                         T[i, j, X[i, j]] += 1
 
         self.u = u
-        self.sig = dict([[k, numpy.sqrt(v)] for k, v in sig2.items()])
+        self.sig = dict([[k, numpy.sqrt(v)] for k, v in enumerate(sig2)])
 
         return T[:, :, 1] / (T[:, :, 0] + T[:, :, 1]).astype('double')
 
