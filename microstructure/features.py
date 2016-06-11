@@ -1,8 +1,9 @@
 import pyximport
-pyximport.install(reload_support=True)
+pyximport.install()
 
 import hog
 import skimage.filters
+import numpy
 
 def hog2(im, bins = 20, stride = 1, sigma = 0.0):
     Nios = im.shape[0] / stride
@@ -42,4 +43,4 @@ class HOG():
         else:
             return hog.hog(im, self.binsize)
 
-from boxes import labels2boxes, hists2boxes
+from boxes import labels2boxes, hists2boxes, hog2boxes
